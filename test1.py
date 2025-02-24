@@ -1,8 +1,7 @@
 import openpyxl
 from docx import Document
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk, simpledialog
-from datetime import datetime
+from tkinter import filedialog, messagebox, ttk, simpledialog, Menu
 import os
 import shutil
 
@@ -20,9 +19,15 @@ def get_cell_value(ws, cell_row, cell_column):
     cell = f"{cell_column}{cell_row}"
     return str(ws[cell].value if ws[cell].value is not None else "")
 
+# Функция очистки UI
+def clear_ui():
+    for widget in root.winfo_children():
+        if widget != menu_button:  # Не удаляем кнопку "Меню"
+            widget.destroy()
+
 # Функция выбора файла Excel
 def select_excel_file():
-    global wb, excel_file_name
+    global wb, excel_file_name, excel_file_path
     file_path = filedialog.askopenfilename(
         title="Выберите файл Excel",
         filetypes=[("Excel files", "*.xlsx *.xls"), ("All files", "*.*")],
@@ -32,51 +37,64 @@ def select_excel_file():
         try:
             wb = openpyxl.load_workbook(file_path)
             excel_file_name = os.path.splitext(os.path.basename(file_path))[0]
-            load_ui_data(wb)
-            messagebox.showinfo("Успех", f"Загружен файл: {file_path}")
+            excel_file_path = file_path
+            return True
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось загрузить файл: {str(e)}")
+            return False
     else:
         messagebox.showwarning("Предупреждение", "Файл не выбран!")
+        return False
 
 # Функция создания нового проекта
 def create_project():
-    global wb, excel_file_name
+    global wb, excel_file_name, excel_file_path
     project_name = simpledialog.askstring("Создать проект", "Введите название проекта:")
     if project_name:
-        # Путь к шаблону и новому файлу
         template_path = os.path.join(os.getcwd(), "Templates/Excel_templates", "Template.xlsx")
         new_file_path = os.path.join(os.getcwd(), "Excel_files", f"{project_name}.xlsx")
         
         try:
-            # Проверяем, существует ли шаблон
             if not os.path.exists(template_path):
                 messagebox.showerror("Ошибка", "Файл Template.xlsx не найден в папке Templates!")
                 return
             
-            # Копируем шаблон в Excel_files с новым именем
             shutil.copyfile(template_path, new_file_path)
-            
-            # Загружаем новый файл
             wb = openpyxl.load_workbook(new_file_path)
-            excel_file_name = project_name  # Сохраняем имя файла без расширения
-            load_ui_data(wb)
+            excel_file_name = project_name
+            excel_file_path = new_file_path
+            load_create_project_ui(wb)
             messagebox.showinfo("Успех", f"Проект '{project_name}' создан и загружен: {new_file_path}")
         except Exception as e:
             messagebox.showerror("Ошибка", f"Не удалось создать проект: {str(e)}")
     else:
         messagebox.showwarning("Предупреждение", "Название проекта не введено!")
 
-# Функция загрузки данных в интерфейс
-def load_ui_data(workbook):
+# Функция сохранения данных в Excel
+def save_to_excel():
+    global wb, excel_file_path
+    if wb is None:
+        messagebox.showwarning("Предупреждение", "Сначала загрузите файл Excel!")
+        return False
+
+    try:
+        main_sheet = wb['Main data']
+        for _, value_data in main_data:
+            cell = f"{value_data['cell_column']}{value_data['cell_row']}"
+            main_sheet[cell].value = entries[value_data['name']].get()
+        
+        wb.save(excel_file_path)
+        messagebox.showinfo("Успех", f"Данные сохранены в {excel_file_path}")
+        return True
+    except Exception as e:
+        messagebox.showerror("Ошибка", f"Не удалось сохранить файл: {str(e)}")
+        return False
+
+# UI для создания проекта
+def load_create_project_ui(workbook):
+    clear_ui()
     main_sheet = workbook['Main data']
     
-    # Очищаем только поля ввода и метки выше фрейма (строки 1-10)
-    for widget in root.grid_slaves():
-        if widget.grid_info().get('row', 0) in range(1, 11):
-            widget.destroy()
-
-    # Создаем поля ввода и метки на основе данных из Main data
     global entries
     entries = {}
     for i, (label_data, value_data) in enumerate(main_data, start=1):
@@ -88,13 +106,41 @@ def load_ui_data(workbook):
         entries[value_data['name']].grid(row=i, column=1, padx=5, pady=5)
         entries[value_data['name']].insert(0, value)
 
-    # Очищаем старые чекбоксы в scrollable_frame
-    for widget in scrollable_frame.winfo_children():
-        widget.destroy()
+    save_button = tk.Button(root, text="Сохранить", command=save_to_excel)
+    save_button.grid(row=11, column=0, columnspan=2, pady=10)
 
-    # Создаем новые чекбоксы для листов
+# UI для создания актов
+def load_create_acts_ui(workbook):
+    clear_ui()
+    main_sheet = workbook['Main data']
+    
+    global entries, sheet_vars
+    entries = {}
+    for i, (label_data, value_data) in enumerate(main_data, start=1):
+        label_text = get_cell_value(main_sheet, label_data['cell_row'], 'A')
+        value = get_cell_value(main_sheet, value_data['cell_row'], 'B')
+        
+        tk.Label(root, text=label_text).grid(row=i, column=0, padx=5, pady=5, sticky="e")
+        entries[value_data['name']] = tk.Entry(root, width=100)
+        entries[value_data['name']].grid(row=i, column=1, padx=5, pady=5)
+        entries[value_data['name']].insert(0, value)
+
+    frame = tk.Frame(root)
+    frame.grid(row=11, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+
+    canvas = tk.Canvas(frame)
+    scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
+    scrollable_frame = tk.Frame(canvas)
+
+    scrollable_frame.bind(
+        "<Configure>",
+        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+    )
+
+    canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+    canvas.configure(yscrollcommand=scrollbar.set)
+
     tk.Label(scrollable_frame, text="Выберите листы:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
-    global sheet_vars
     sheet_vars = {}
     for i, sheet_name in enumerate(workbook.sheetnames, start=1):
         if sheet_name not in {'Main data', 'Contents'}:
@@ -102,9 +148,33 @@ def load_ui_data(workbook):
             tk.Checkbutton(scrollable_frame, text=sheet_name, variable=var).grid(row=i, column=0, padx=5, pady=2, sticky="w")
             sheet_vars[sheet_name] = var
 
-    # Обновляем область прокрутки
-    canvas.update_idletasks()
-    canvas.configure(scrollregion=canvas.bbox("all"))
+    canvas.grid(row=1, column=0, sticky="nsew")
+    scrollbar.grid(row=1, column=1, sticky="ns")
+
+    frame.grid_rowconfigure(1, weight=1)
+    frame.grid_columnconfigure(0, weight=1)
+
+    all_var = tk.BooleanVar()
+    tk.Checkbutton(frame, text="Выбрать все", variable=all_var, command=toggle_all_sheets).grid(row=0, column=0, padx=5, pady=5, sticky="w")
+
+    generate_button = tk.Button(root, text="Создать акты", command=generate_document)
+    generate_button.grid(row=12, column=0, columnspan=2, pady=10)
+
+# UI для создания реестра (заглушка)
+def load_create_registry_ui(workbook):
+    clear_ui()
+    tk.Label(root, text="Функция создания реестра пока не реализована").grid(row=1, column=0, columnspan=2, pady=20)
+
+# Загрузка интерфейса по выбору из меню
+def load_ui_from_menu(option):
+    loaded = select_excel_file()
+    if loaded:
+        if option == "Создать проект":
+            load_create_project_ui(wb)
+        elif option == "Создать акты":
+            load_create_acts_ui(wb)
+        elif option == "Создать реестр":
+            load_create_registry_ui(wb)
 
 # Загрузка файлов
 word_file = "Templates/Word_templates/Act_template.docx"
@@ -139,6 +209,7 @@ subobject_data = [
 
 wb = None
 excel_file_name = None
+excel_file_path = None
 
 def create_word_doc(template_path, output_path, replacements):
     doc = Document(template_path)
@@ -158,6 +229,8 @@ def generate_document():
     if not selected_sheets:
         messagebox.showwarning("Предупреждение", "Выберите хотя бы один лист!")
         return
+
+    save_to_excel()
 
     created_files = []
     errors = []
@@ -203,13 +276,13 @@ def generate_document():
                 errors.append(f"Ошибка при создании {output_path}: {str(e)}")
 
     if created_files:
-        success_message = "Успешно созданы документы:\n" + "\n".join(created_files)
+        success_message = "Успешно созданы акты:\n" + "\n".join(created_files)
         messagebox.showinfo("Успех", success_message)
     if errors:
-        error_message = "Ошибки при создании документов:\n" + "\n".join(errors)
+        error_message = "Ошибки при создании актов:\n" + "\n".join(errors)
         messagebox.showerror("Ошибка", error_message)
     if not created_files and not errors:
-        messagebox.showinfo("Информация", "Документы не были созданы.")
+        messagebox.showinfo("Информация", "Акт не были созданы.")
 
 def toggle_all_sheets():
     select_all = all_var.get()
@@ -220,39 +293,21 @@ def toggle_all_sheets():
 root = tk.Tk()
 root.title("Создание документов")
 
-load_button = tk.Button(root, text="Загрузить Excel", command=select_excel_file)
-load_button.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
+# Кнопка "Меню"
+menu_button = tk.Button(root, text="Меню")
+menu_button.grid(row=0, column=0, padx=5, pady=5, sticky="nw")
 
-# Новая кнопка "Создать проект"
-create_project_button = tk.Button(root, text="Создать проект", command=create_project)
-create_project_button.grid(row=0, column=1, padx=5, pady=5, sticky="nw")
+# Создание выпадающего меню
+menu = Menu(root, tearoff=0)
+menu.add_command(label="Создать проект", command=lambda: create_project())
+menu.add_command(label="Создать акты", command=lambda: load_ui_from_menu("Создать акты"))
+menu.add_command(label="Создать реестр", command=lambda: load_ui_from_menu("Создать реестр"))
 
-frame = tk.Frame(root)
-frame.grid(row=11, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+# Привязка меню к кнопке
+def show_menu(event):
+    menu.post(event.x_root, event.y_root)
 
-canvas = tk.Canvas(frame)
-scrollbar = ttk.Scrollbar(frame, orient="vertical", command=canvas.yview)
-scrollable_frame = tk.Frame(canvas)
-
-scrollable_frame.bind(
-    "<Configure>",
-    lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-)
-
-canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-canvas.configure(yscrollcommand=scrollbar.set)
-
-all_var = tk.BooleanVar()
-tk.Checkbutton(frame, text="Выбрать все", variable=all_var, command=toggle_all_sheets).grid(row=0, column=0, padx=5, pady=5, sticky="w")
-
-canvas.grid(row=1, column=0, sticky="nsew")
-scrollbar.grid(row=1, column=1, sticky="ns")
-
-frame.grid_rowconfigure(1, weight=1)
-frame.grid_columnconfigure(0, weight=1)
-
-generate_button = tk.Button(root, text="Создать документ", command=generate_document)
-generate_button.grid(row=12, column=0, columnspan=2, pady=10)
+menu_button.bind("<Button-1>", show_menu)
 
 root.geometry("800x600")
 root.grid_rowconfigure(11, weight=1)
@@ -261,5 +316,6 @@ root.grid_columnconfigure(1, weight=1)
 sheet_vars = {}
 entries = {}
 excel_file_name = None
+excel_file_path = None
 
 root.mainloop()
