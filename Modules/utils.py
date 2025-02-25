@@ -15,6 +15,15 @@ def get_cell_value(ws, cell_row, cell_column):
     cell = f"{cell_column}{cell_row}"
     return str(ws[cell].value if ws[cell].value is not None else "")
 
+def split_values(value):
+    if value is "":
+        return []
+    if not isinstance(value, str):
+        return [str(value)]
+    
+    values = [v.strip() for v in value.split(';') if v.strip()]
+    return values
+
 def clear_ui(root, menu_button, menu):
     for widget in root.winfo_children():
         if widget != menu_button and widget != menu:
