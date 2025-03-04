@@ -2,21 +2,22 @@ from docx import Document
 import tkinter as tk
 from tkinter import messagebox, ttk
 import os
+import re
 from Modules.utils import format_date, get_cell_value, clear_ui, select_excel_file
 
 word_file = "Templates/Word_templates/Act_template.docx"
 
 main_data = [
-    ({'cell_row': '1'}, {'name': '_OBJECT-NAME_', 'cell_row': '1', 'cell_column': 'B'}),
-    ({'cell_row': '2'}, {'name': '_CONTRACTOR-REPRESENTATIVE_', 'cell_row': '2', 'cell_column': 'B'}),
-    ({'cell_row': '3'}, {'name': '_CONTRACTOR-REPRESENTATIVE-NAME_', 'cell_row': '3', 'cell_column': 'B'}),
-    ({'cell_row': '4'}, {'name': '_TECHNICAL-SUPERVISION-REPRESENTATIVE_', 'cell_row': '4', 'cell_column': 'B'}),
-    ({'cell_row': '5'}, {'name': '_TECHNICAL-SUPERVISION-REPRESENTATIVE-NAME_', 'cell_row': '5', 'cell_column': 'B'}),
-    ({'cell_row': '6'}, {'name': '_DESIGN-ORGANIZATION-REPRESENTATIVE_', 'cell_row': '6', 'cell_column': 'B'}),
-    ({'cell_row': '7'}, {'name': '_DESIGN-ORGANIZATION-REPRESENTATIVE-NAME_', 'cell_row': '7', 'cell_column': 'B'}),
-    ({'cell_row': '8'}, {'name': '_ADDITIONAL-REPRESENTATIVES_', 'cell_row': '8', 'cell_column': 'B'}),
-    ({'cell_row': '9'}, {'name': '_ADDITIONAL-REPRESENTATIVES-NAME_', 'cell_row': '9', 'cell_column': 'B'}),
-    ({'cell_row': '10'}, {'name': '_GENERAL-CONTRACTOR_', 'cell_row': '10', 'cell_column': 'B'})
+    {'name': '_OBJECT-NAME_', 'cell_row': '1', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': '_CONTRACTOR-REPRESENTATIVE_', 'cell_row': '2', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': '_CONTRACTOR-REPRESENTATIVE-NAME_', 'cell_row': '3', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': '_TECHNICAL-SUPERVISION-REPRESENTATIVE_', 'cell_row': '4', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': '_TECHNICAL-SUPERVISION-REPRESENTATIVE-NAME_', 'cell_row': '5', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': '_DESIGN-ORGANIZATION-REPRESENTATIVE_', 'cell_row': '6', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': '_DESIGN-ORGANIZATION-REPRESENTATIVE-NAME_', 'cell_row': '7', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': '_ADDITIONAL-REPRESENTATIVES_', 'cell_row': '8', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': '_ADDITIONAL-REPRESENTATIVES-NAME_', 'cell_row': '9', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': '_GENERAL-CONTRACTOR_', 'cell_row': '10', 'cell_column': 'B', 'description_cell_column': 'A'}
 ]
 
 subobject_data = [
@@ -60,9 +61,9 @@ class CreateActs:
         main_sheet = self.wb['Main data']
         
         self.entries.clear()
-        for i, (label_data, value_data) in enumerate(main_data, start=1):
-            label_text = get_cell_value(main_sheet, label_data['cell_row'], 'A')
-            value = get_cell_value(main_sheet, value_data['cell_row'], 'B')
+        for i, value_data in enumerate(main_data):
+            label_text = get_cell_value(main_sheet, value_data['cell_row'], value_data['description_cell_column'])
+            value = get_cell_value(main_sheet, value_data['cell_row'], value_data['cell_column'])
             
             tk.Label(self.root, text=label_text).grid(row=i, column=0, padx=5, pady=5, sticky="e")
             self.entries[value_data['name']] = tk.Entry(self.root, width=100)
@@ -87,7 +88,7 @@ class CreateActs:
         tk.Label(scrollable_frame, text="Выберите листы:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.sheet_vars.clear()
         for i, sheet_name in enumerate(self.wb.sheetnames, start=1):
-            if sheet_name not in {'Main data', 'Contents'}:
+            if sheet_name not in {'Main data', 'Contents'} and not re.match(r'^[!_]', sheet_name):
                 var = tk.BooleanVar()
                 tk.Checkbutton(scrollable_frame, text=sheet_name, variable=var).grid(row=i, column=0, padx=5, pady=2, sticky="w")
                 self.sheet_vars[sheet_name] = var
@@ -111,7 +112,7 @@ class CreateActs:
 
         try:
             main_sheet = self.wb['Main data']
-            for _, value_data in main_data:
+            for value_data in main_data:
                 cell = f"{value_data['cell_column']}{value_data['cell_row']}"
                 main_sheet[cell].value = self.entries[value_data['name']].get()
             
@@ -152,7 +153,7 @@ class CreateActs:
 
             for row_number in range(3, last_row + 1):
                 replacements = {}
-                for _, value_data in main_data:
+                for value_data in main_data:
                     replacements[value_data['name']] = self.entries[value_data['name']].get()
 
                 for obj in subobject_data:

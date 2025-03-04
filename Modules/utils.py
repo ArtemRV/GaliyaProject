@@ -1,6 +1,7 @@
 import openpyxl
-from tkinter import filedialog, messagebox
 import os
+from datetime import datetime
+from tkinter import filedialog, messagebox
 
 def format_date(date_str):
     months = {
@@ -13,10 +14,15 @@ def format_date(date_str):
 
 def get_cell_value(ws, cell_row, cell_column):
     cell = f"{cell_column}{cell_row}"
-    return str(ws[cell].value if ws[cell].value is not None else "")
+    value = ws[cell].value
+    
+    if isinstance(value, datetime):
+        return value.strftime("%Y.%m.%d")
+    
+    return str(value) if value is not None else ""
 
 def split_values(value):
-    if value is "":
+    if value == "":
         return []
     if not isinstance(value, str):
         return [str(value)]
