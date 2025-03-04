@@ -8,31 +8,31 @@ from Modules.utils import format_date, get_cell_value, clear_ui, select_excel_fi
 word_file = "Templates/Word_templates/Act_template.docx"
 
 main_data = [
-    {'name': '_OBJECT-NAME_', 'cell_row': '1', 'cell_column': 'B', 'description_cell_column': 'A'},
-    {'name': '_CONTRACTOR-REPRESENTATIVE_', 'cell_row': '2', 'cell_column': 'B', 'description_cell_column': 'A'},
-    {'name': '_CONTRACTOR-REPRESENTATIVE-NAME_', 'cell_row': '3', 'cell_column': 'B', 'description_cell_column': 'A'},
-    {'name': '_TECHNICAL-SUPERVISION-REPRESENTATIVE_', 'cell_row': '4', 'cell_column': 'B', 'description_cell_column': 'A'},
-    {'name': '_TECHNICAL-SUPERVISION-REPRESENTATIVE-NAME_', 'cell_row': '5', 'cell_column': 'B', 'description_cell_column': 'A'},
-    {'name': '_DESIGN-ORGANIZATION-REPRESENTATIVE_', 'cell_row': '6', 'cell_column': 'B', 'description_cell_column': 'A'},
-    {'name': '_DESIGN-ORGANIZATION-REPRESENTATIVE-NAME_', 'cell_row': '7', 'cell_column': 'B', 'description_cell_column': 'A'},
-    {'name': '_ADDITIONAL-REPRESENTATIVES_', 'cell_row': '8', 'cell_column': 'B', 'description_cell_column': 'A'},
-    {'name': '_ADDITIONAL-REPRESENTATIVES-NAME_', 'cell_row': '9', 'cell_column': 'B', 'description_cell_column': 'A'},
-    {'name': '_GENERAL-CONTRACTOR_', 'cell_row': '10', 'cell_column': 'B', 'description_cell_column': 'A'}
+    {'name': 'OBJECTNAME', 'cell_row': '1', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': 'CONTRACTORREPRESENTATIVE', 'cell_row': '2', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': 'CONTRACTORREPRESENTATIVENAME', 'cell_row': '3', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': 'TECHNICALSUPERVISIONREPRESENTATIVE', 'cell_row': '4', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': 'TECHNICALSUPERVISIONREPRESENTATIVENAME', 'cell_row': '5', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': 'DESIGNORGANIZATIONREPRESENTATIVE', 'cell_row': '6', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': 'DESIGNORGANIZATIONREPRESENTATIVENAME', 'cell_row': '7', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': 'ADDITIONALREPRESENTATIVES', 'cell_row': '8', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': 'ADDITIONALREPRESENTATIVESNAME', 'cell_row': '9', 'cell_column': 'B', 'description_cell_column': 'A'},
+    {'name': 'GENERALCONTRACTOR', 'cell_row': '10', 'cell_column': 'B', 'description_cell_column': 'A'}
 ]
 
 subobject_data = [
-    {'name': '_SUBOBJECT-NAME_', 'cell_column': 'B', 'cell_row': '1'},
-    {'name': '_ACT-NUMBER_', 'cell_column': 'A'},
-    {'name': '_EXECUTION-DATE-MONTH_', 'cell_column': 'B'},
-    {'name': '_EXECUTION-DATE_', 'cell_column': 'B'},
-    {'name': '_WORK-NAMING_', 'cell_column': 'C'},
-    {'name': '_ALBUM-NAME_', 'cell_column': 'D'},
-    {'name': '_PAGE_', 'cell_column': 'E'},
-    {'name': '_MATERIALS_', 'cell_column': 'F'},
-    {'name': '_EXECUTIVE-DIAGRAM_', 'cell_column': 'G'},
-    {'name': '_LABORATORY_', 'cell_column': 'H'},
-    {'name': '_END-DATE_', 'cell_column': 'I'},
-    {'name': '_NEXT-WORKS_', 'cell_column': 'J'}
+    {'name': 'SUBOBJECTNAME', 'cell_column': 'B', 'cell_row': '1'},
+    {'name': 'ACTNUMBER', 'cell_column': 'A'},
+    {'name': 'EXECUTIONDATEMONTH', 'cell_column': 'B'},
+    {'name': 'EXECUTIONDATE', 'cell_column': 'B'},
+    {'name': 'WORKNAMING', 'cell_column': 'C'},
+    {'name': 'ALBUMNAME', 'cell_column': 'D'},
+    {'name': 'PAGE', 'cell_column': 'E'},
+    {'name': 'MATERIALS', 'cell_column': 'F'},
+    {'name': 'EXECUTIVEDIAGRAM', 'cell_column': 'G'},
+    {'name': 'LABORATORY', 'cell_column': 'H'},
+    {'name': 'ENDDATE', 'cell_column': 'I'},
+    {'name': 'NEXTWORKS', 'cell_column': 'J'}
 ]
 
 class CreateActs:
@@ -157,16 +157,16 @@ class CreateActs:
                     replacements[value_data['name']] = self.entries[value_data['name']].get()
 
                 for obj in subobject_data:
-                    if obj['name'] == '_EXECUTION-DATE-MONTH_':
+                    if obj['name'] == 'EXECUTIONDATEMONTH':
                         date_value = get_cell_value(ws, row_number, obj['cell_column'])
                         new_value = format_date(date_value) if date_value else ""
                         replacements[obj['name']] = new_value
-                    elif obj['name'] == '_SUBOBJECT-NAME_':
+                    elif obj['name'] == 'SUBOBJECTNAME':
                         replacements[obj['name']] = get_cell_value(ws, obj['cell_row'], obj['cell_column'])
                     else:
                         replacements[obj['name']] = get_cell_value(ws, row_number, obj['cell_column'])
 
-                    if obj['name'] == '_ACT-NUMBER_':
+                    if obj['name'] == 'ACTNUMBER':
                         act_number = get_cell_value(ws, row_number, obj['cell_column']).replace('/', '_')
                         output_path = os.path.join(sheet_dir, f"{act_number}.docx")
 
@@ -190,7 +190,7 @@ class CreateActs:
         for para in doc.paragraphs:
             for run in para.runs:
                 for key, value in replacements.items():
-                    if key in run.text:
+                    if key == run.text:
                         run.text = run.text.replace(key, value)
         doc.save(output_path)
 
