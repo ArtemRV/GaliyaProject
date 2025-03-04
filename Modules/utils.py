@@ -17,7 +17,7 @@ def get_cell_value(ws, cell_row, cell_column):
     value = ws[cell].value
     
     if isinstance(value, datetime):
-        return value.strftime("%Y.%m.%d")
+        return value.strftime("%d.%m.%Y")
     
     return str(value) if value is not None else ""
 
