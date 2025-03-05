@@ -1,15 +1,17 @@
+import os
+import re
+import tkinter as tk
 from docx import Document
 from docx.enum.text import WD_BREAK
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
-import tkinter as tk
 from tkinter import messagebox, ttk
-import os
-import re
+from PyPDF2 import PdfReader
 from Modules.utils import get_cell_value, clear_ui, select_excel_file, format_date
 
 REGISTER_TITLE_TEMPLATE = "Templates/Word_templates/Register_title_template.docx"
 REGISTER_TABLE_TEMPLATE = "Templates/Word_templates/Register_table_template.docx"
+CERTIFICATES = "Templates/Certificates/"
 
 MAIN_DATA = [
     {'name': 'OBJECTNAME', 'cell_row': '1', 'cell_column': 'B', 'description_cell_column': 'A'},
@@ -148,10 +150,10 @@ class CreateRegistry:
             sheet_dir = os.path.join(excel_dir, sheet_name)
             os.makedirs(sheet_dir, exist_ok=True)
 
-            output_path = None  # Инициализируем переменную перед try
+            output_path = None
             try:
                 output_path, doc = self.generate_document_title(ws, last_row, sheet_dir)
-                doc = self.generate_document_table(doc, ws, last_row)
+                doc = self.generate_document_table(doc, ws, last_row, sheet_dir)
                 self.generate_document_content()  # Пока пустая, можно убрать если не используется
                 
                 doc.save(output_path)
@@ -182,156 +184,38 @@ class CreateRegistry:
         doc = self.create_word_doc(REGISTER_TITLE_TEMPLATE, replacements)
         return output_path, doc        
 
-    # Пример интеграции в ваш код
-    # def generate_document_table(self, doc, ws, last_row):
-    #     # Добавляем разрыв страницы перед таблицей
-    #     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
-        
-    #     table_doc = Document(REGISTER_TABLE_TEMPLATE)
-    #     for table in table_doc.tables:
-    #         # Определяем количество необходимых строк и их контент
-    #         row_idx = 1
-    #         page = 0
-    #         table_data = {}
-            
-    #         # Заполняем хеш-таблицу данными из ws
-    #         for i in range(3, last_row + 1):  # Начинаем с 3, заканчиваем last_row
-    #             # Инициализируем текущую строку в table_data
-    #             table_data[row_idx] = {}
-    #             table_data[row_idx]['idx'] = str(row_idx)
-    #             act_number = get_cell_value(ws, i, SUBOBJECT_DATA[1]['cell_column']) or ""
-    #             work_naming = get_cell_value(ws, i, SUBOBJECT_DATA[3]['cell_column']) or ""
-    #             exec_date = get_cell_value(ws, i, SUBOBJECT_DATA[2]['cell_column']) or ""
-    #             table_data[row_idx]['content'] = f"Акт скрытых работ № {act_number} {work_naming} {format_date(exec_date) if exec_date else ''}"
-    #             page += 2
-    #             table_data[row_idx]['page'] = page
-
-    #             # Проверяем material
-    #             material = get_cell_value(ws, i, SUBOBJECT_DATA[6]['cell_column']) or ""
-    #             if material != '':
-    #                 row_idx += 1
-    #                 table_data[row_idx] = {}
-    #                 table_data[row_idx]['idx'] = str(row_idx)
-    #                 table_data[row_idx]['content'] = material
-    #                 page += 2
-    #                 table_data[row_idx]['page'] = page
-
-    #             # Проверяем schema
-    #             schema = get_cell_value(ws, i, SUBOBJECT_DATA[7]['cell_column']) or ""
-    #             if schema != '':
-    #                 row_idx += 1
-    #                 table_data[row_idx] = {}
-    #                 table_data[row_idx]['idx'] = str(row_idx)
-    #                 table_data[row_idx]['content'] = schema  # Исправлено: schema вместо material
-    #                 page += 2
-    #                 table_data[row_idx]['page'] = page
-
-    #             # Проверяем laboratory
-    #             laboratory = get_cell_value(ws, i, SUBOBJECT_DATA[8]['cell_column']) or ""
-    #             if laboratory != '':
-    #                 row_idx += 1
-    #                 table_data[row_idx] = {}
-    #                 table_data[row_idx]['idx'] = str(row_idx)
-    #                 table_data[row_idx]['content'] = laboratory  # Исправлено: laboratory вместо material
-    #                 page += 2
-    #                 table_data[row_idx]['page'] = page
-
-    #             row_idx += 1
-
-    #         data_rows_needed = row_idx - 1  # Учитываем, что row_idx увеличивается лишний раз
-    #         print(f"Data rows needed: {data_rows_needed}")
-
-    #         template_rows = len(table.rows)
-            
-    #         # Создаем новую таблицу
-    #         new_table = doc.add_table(rows=max(template_rows, data_rows_needed + 1), cols=len(table.columns))
-            
-    #         # Копируем свойства таблицы из шаблона
-    #         new_table.autofit = table.autofit
-            
-    #         # Копируем ширину колонок
-    #         for col_idx, column in enumerate(table.columns):
-    #             if col_idx < len(new_table.columns):
-    #                 new_table.columns[col_idx].width = column.width
-            
-    #         # Копируем содержимое и форматирование ячеек из шаблона
-    #         for i, row in enumerate(table.rows):
-    #             new_row = new_table.rows[i]
-    #             if row._tr.trPr.find(qn('w:trHeight')) is not None:
-    #                 new_row._tr.trPr.append(row._tr.trPr.find(qn('w:trHeight')))
-    #             for j, cell in enumerate(row.cells):
-    #                 new_cell = new_row.cells[j]
-    #                 new_cell.text = cell.text
-    #                 new_cell.width = cell.width
-    #                 set_cell_borders(new_cell)  # Добавляем границы
-    #                 for src_para, dst_para in zip(cell.paragraphs, new_cell.paragraphs):
-    #                     dst_para.style = src_para.style
-    #                     dst_para.paragraph_format.space_before = 0
-    #                     dst_para.paragraph_format.space_after = 0
-    #                     dst_para.paragraph_format.line_spacing = 1.0
-    #                     for src_run, dst_run in zip(src_para.runs, dst_para.runs):
-    #                         dst_run.font.name = src_run.font.name
-    #                         dst_run.font.size = src_run.font.size
-    #                         dst_run.bold = src_run.bold
-    #                         dst_run.italic = src_run.italic
-    #                         dst_run.underline = src_run.underline
-
-    #         # Заполняем таблицу данными из table_data
-    #         for row_idx in range(1, data_rows_needed):
-    #             if row_idx >= template_rows:
-    #                 new_row = new_table.add_row()
-    #                 template_row = table.rows[1]
-    #                 if template_row._tr.trPr.find(qn('w:trHeight')) is not None:
-    #                     new_row._tr.trPr.append(template_row._tr.trPr.find(qn('w:trHeight')))
-    #             cells = new_table.rows[row_idx].cells
-    #             cells[0].text = table_data[row_idx]['idx']  # Номер строки
-    #             cells[1].text = table_data[row_idx]['content']  # Контент
-    #             cells[2].text = str(table_data[row_idx]['page'])  # Страница
-    #             for cell in cells:
-    #                 set_cell_borders(cell)  # Добавляем границы
-    #                 for para in cell.paragraphs:
-    #                     para.paragraph_format.space_before = 0
-    #                     para.paragraph_format.space_after = 0
-    #                     para.paragraph_format.line_spacing = 1.0
-            
-    #         # Устанавливаем отступы для таблицы
-    #         table_paragraph = new_table._element.getparent()
-    #         if table_paragraph.tag.endswith('p'):
-    #             table_paragraph.paragraph_format.left_indent = 250000  # 1 см слева
-    #             table_paragraph.paragraph_format.right_indent = 250000  # 1 см справа
-            
-    #         new_table.autofit = False
-        
-    #     return doc
-
-    def generate_document_table(self, doc, ws, last_row):
+    def generate_document_table(self, doc, ws, last_row, sheet_dir):
         # Добавляем разрыв страницы перед таблицей
         doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
         
-        table_doc = Document(REGISTER_TABLE_TEMPLATE)
-        for table in table_doc.tables:
-            # Заполняем данные таблицы
-            table_data, data_rows_needed = fill_table_data(ws, last_row)            
-            template_rows = len(table.rows)
+        try:
+            table_doc = Document(REGISTER_TABLE_TEMPLATE)
+            for table in table_doc.tables:
+                # Заполняем данные таблицы
+                table_data, data_rows_needed = fill_table_data(ws, last_row, sheet_dir)
+                
+                # Создаем новую таблицу: 1 строка для заголовка + строки для данных
+                header_rows = 1
+                new_table = doc.add_table(rows=header_rows + data_rows_needed, cols=len(table.columns))
+                
+                # Копируем только значения первой строки из шаблона
+                copy_header_values(new_table, table)
+                
+                # Заполняем таблицу данными
+                fill_table_with_data(new_table, table_data, header_rows)
+                
+                # Устанавливаем отступы для таблицы
+                table_paragraph = new_table._element.getparent()
+                if table_paragraph.tag.endswith('p'):
+                    table_paragraph.paragraph_format.left_indent = 250000  # 1 см слева
+                    table_paragraph.paragraph_format.right_indent = 250000  # 1 см справа
+                
+                # Автоматическая подстройка ширины столбцов
+                new_table.autofit = True
             
-            # Создаем новую таблицу
-            new_table = doc.add_table(rows=max(template_rows, data_rows_needed), cols=len(table.columns))
-            
-            # Копируем форматирование из шаблона
-            copy_template_formatting(new_table, table)
-            
-            # Заполняем таблицу данными
-            fill_table_with_data(new_table, table_data, template_rows, table)
-            
-            # Устанавливаем отступы для таблицы
-            table_paragraph = new_table._element.getparent()
-            if table_paragraph.tag.endswith('p'):
-                table_paragraph.paragraph_format.left_indent = 250000  # 1 см слева
-                table_paragraph.paragraph_format.right_indent = 250000  # 1 см справа
-            
-            new_table.autofit = False
-        
-        return doc
+            return doc
+        except Exception as e:
+            raise Exception(f"Ошибка в generate_document_table: {str(e)}")
 
     def generate_document_content(self):
         pass
@@ -351,15 +235,15 @@ class CreateRegistry:
             var.set(select_all)
 
 def set_cell_borders(cell):
-    """Устанавливает видимые границы для ячейки."""
+    """Устанавливает видимые границы для ячейки (сплошные линии)."""
     tc = cell._tc
     tcPr = tc.get_or_add_tcPr()
     borders = OxmlElement('w:tcBorders')
     for border_name in ['top', 'left', 'bottom', 'right']:
         border = OxmlElement(f'w:{border_name}')
-        border.set(qn('w:val'), 'single')
-        border.set(qn('w:sz'), '4')
-        border.set(qn('w:color'), '000000')
+        border.set(qn('w:val'), 'single')  # Сплошная линия
+        border.set(qn('w:sz'), '4')  # Толщина линии (4 = 1/2 pt)
+        border.set(qn('w:color'), '000000')  # Черный цвет
         borders.append(border)
     tcPr.append(borders)
 
@@ -371,18 +255,20 @@ def add_table_row_data(table_data, row_idx, content, page):
     }
     return row_idx + 1
 
-def process_split_text(table_data, row_idx, text, page):
+def process_split_text(table_data, row_idx, text, page, file_path):
     if ';' in text:
         parts = [part.strip() for part in text.split(';') if part.strip()]
         for part in parts:
-            page += 2
+            pdf_path, plus_pages = find_pdf_and_count_pages(file_path, part)
+            page += plus_pages if plus_pages is not None else 0
             row_idx = add_table_row_data(table_data, row_idx, part, page)
     elif text != '':
-        page += 2
+        pdf_path, plus_pages = find_pdf_and_count_pages(file_path, text)
+        page += plus_pages if plus_pages is not None else 0
         row_idx = add_table_row_data(table_data, row_idx, text, page)
     return row_idx, page
 
-def fill_table_data(ws, last_row):
+def fill_table_data(ws, last_row, sheet_dir):
     """Заполняет хеш-таблицу данными из ws."""
     row_idx = 1
     page = 0
@@ -399,61 +285,94 @@ def fill_table_data(ws, last_row):
 
         # Проверяем material
         material = get_cell_value(ws, i, SUBOBJECT_DATA[6]['cell_column']) or ""
-        row_idx, page = process_split_text(table_data, row_idx, material, page)
+        row_idx, page = process_split_text(table_data, row_idx, material, page, CERTIFICATES)
 
         # Проверяем schema
         schema = get_cell_value(ws, i, SUBOBJECT_DATA[7]['cell_column']) or ""
-        row_idx, page = process_split_text(table_data, row_idx, schema, page)
+        schema_path = os.path.join(sheet_dir, "Исполнительная схема")
+        os.makedirs(schema_path, exist_ok=True)
+        row_idx, page = process_split_text(table_data, row_idx, schema, page, schema_path)
 
         # Проверяем laboratory
         laboratory = get_cell_value(ws, i, SUBOBJECT_DATA[8]['cell_column']) or ""
-        row_idx, page = process_split_text(table_data, row_idx, laboratory, page)
+        laboratory_path = os.path.join(sheet_dir, "протокол")
+        os.makedirs(laboratory_path, exist_ok=True)
+        row_idx, page = process_split_text(table_data, row_idx, laboratory, page, laboratory_path)
 
     return table_data, row_idx - 1
 
-def copy_template_formatting(new_table, template_table):
-    """Копирует форматирование из шаблона в новую таблицу."""
-    new_table.autofit = template_table.autofit
-    for col_idx, column in enumerate(template_table.columns):
-        if col_idx < len(new_table.columns):
-            new_table.columns[col_idx].width = column.width
-    
-    for i, row in enumerate(template_table.rows):
-        new_row = new_table.rows[i]
-        if row._tr.trPr.find(qn('w:trHeight')) is not None:
-            new_row._tr.trPr.append(row._tr.trPr.find(qn('w:trHeight')))
-        for j, cell in enumerate(row.cells):
-            new_cell = new_row.cells[j]
-            new_cell.text = cell.text
-            new_cell.width = cell.width
-            set_cell_borders(new_cell)
-            for src_para, dst_para in zip(cell.paragraphs, new_cell.paragraphs):
-                dst_para.style = src_para.style
-                dst_para.paragraph_format.space_before = 0
-                dst_para.paragraph_format.space_after = 0
-                dst_para.paragraph_format.line_spacing = 1.0
-                for src_run, dst_run in zip(src_para.runs, dst_para.runs):
-                    dst_run.font.name = src_run.font.name
-                    dst_run.font.size = src_run.font.size
-                    dst_run.bold = src_run.bold
-                    dst_run.italic = src_run.italic
-                    dst_run.underline = src_run.underline
-
-def fill_table_with_data(new_table, table_data, template_rows, template_table):
+def fill_table_with_data(new_table, table_data, header_rows):
     """Заполняет таблицу данными из хеш-таблицы."""
     for row_idx in range(1, len(table_data) + 1):
-        if row_idx >= template_rows:
-            new_row = new_table.add_row()
-            template_row = template_table.rows[1]
-            if template_row._tr.trPr.find(qn('w:trHeight')) is not None:
-                new_row._tr.trPr.append(template_row._tr.trPr.find(qn('w:trHeight')))
-        cells = new_table.rows[row_idx].cells
+        # Индекс строки в таблице с учетом заголовка
+        table_row_idx = header_rows + row_idx - 1
+        cells = new_table.rows[table_row_idx].cells
         cells[0].text = table_data[row_idx]['idx']
         cells[1].text = table_data[row_idx]['content']
         cells[2].text = str(table_data[row_idx]['page'])
         for cell in cells:
-            set_cell_borders(cell)
+            set_cell_borders(cell)  # Устанавливаем границы для каждой ячейки
             for para in cell.paragraphs:
                 para.paragraph_format.space_before = 0
                 para.paragraph_format.space_after = 0
                 para.paragraph_format.line_spacing = 1.0
+
+def copy_header_values(new_table, template_table):
+    """Копирует только значения первой строки из шаблона в новую таблицу."""
+    header_row = template_table.rows[0]
+    new_header_row = new_table.rows[0]
+    for j, cell in enumerate(header_row.cells):
+        new_cell = new_header_row.cells[j]
+        new_cell.text = cell.text
+        set_cell_borders(new_cell)  # Устанавливаем границы для ячеек заголовка
+        for para in new_cell.paragraphs:
+            para.paragraph_format.space_before = 0
+            para.paragraph_format.space_after = 0
+            para.paragraph_format.line_spacing = 1.0
+
+def find_pdf_and_count_pages(folder_path, pdf_name):
+    try:
+        # Проверяем, существует ли папка
+        if not os.path.isdir(folder_path):
+            print(f"Ошибка: Папка '{folder_path}' не существует.")
+            return None, None
+
+        if '/' in pdf_name:
+            pdf_name = pdf_name.replace('/', '_')
+        
+        if '\r' in pdf_name or '\n' in pdf_name:
+            pdf_name = pdf_name.replace('\r\n', ' ').replace('\n', ' ').replace('\r', ' ')
+
+        if '№' in pdf_name and 'Протокол лабораторных испытаний' not in pdf_name and 'Исполнительная схема' not in pdf_name:
+            start_idx = pdf_name.find('№')
+            if start_idx != -1:
+                # Берем текст после №
+                text_after_num = pdf_name[start_idx + 0:].strip()
+                # Разделяем по первому пробелу и берем первую часть
+                pdf_name = text_after_num.split(' ', 1)[0]
+
+        # Добавляем .pdf, если его нет
+        if not pdf_name.lower().endswith('.pdf'):
+            pdf_name_with_ext = pdf_name + '.pdf'
+        else:
+            pdf_name_with_ext = pdf_name
+
+        # Формируем полный путь
+        pdf_path = os.path.join(folder_path, pdf_name_with_ext)
+
+        # Проверяем, существует ли файл
+        if not os.path.isfile(pdf_path):
+            print(f"Ошибка: Файл '{pdf_name_with_ext}' не найден.")
+            return None, None
+        
+        # Открываем PDF и считаем количество страниц
+        with open(pdf_path, 'rb') as pdf_file:
+            pdf_reader = PdfReader(pdf_file)
+            num_pages = len(pdf_reader.pages)
+        
+        return pdf_path, num_pages
+    
+    except Exception as e:
+        print(f"Ошибка при обработке PDF: {str(e)}")
+        return None, None
+    
