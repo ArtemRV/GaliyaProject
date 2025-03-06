@@ -150,6 +150,8 @@ class CreateActs:
 
             sheet_dir = os.path.join(excel_dir, sheet_name)
             os.makedirs(sheet_dir, exist_ok=True)
+            sheet_dir = os.path.join(sheet_dir, "Акты")
+            os.makedirs(sheet_dir, exist_ok=True)
 
             for row_number in range(3, last_row + 1):
                 replacements = {}
