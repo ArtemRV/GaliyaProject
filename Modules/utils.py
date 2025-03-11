@@ -9,7 +9,8 @@ def format_date(date_str):
         "05": "мая", "06": "июня", "07": "июля", "08": "августа",
         "09": "сентября", "10": "октября", "11": "ноября", "12": "декабря"
     }
-    day, month, year = date_str.split(".")
+    if '.' in date_str:
+        day, month, year = date_str.split(".")
     return f"«{day}» {months[month]} {year}"
 
 def get_cell_value(ws, cell_row, cell_column):
@@ -49,7 +50,7 @@ def select_excel_file(project_name=None):
         )
     if file_path:
         try:
-            wb = openpyxl.load_workbook(file_path)
+            wb = openpyxl.load_workbook(file_path, data_only=True)
             excel_file_name = os.path.splitext(os.path.basename(file_path))[0]
             return wb, excel_file_name, file_path
         except Exception as e:

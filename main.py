@@ -3,6 +3,7 @@ from tkinter import ttk, Menu
 from Modules.create_project import CreateProject
 from Modules.create_acts import CreateActs
 from Modules.create_registry import CreateRegistry
+from Modules.create_passport import CreatePassport
 
 class MainApp:
     def __init__(self, root):
@@ -21,11 +22,13 @@ class MainApp:
         self.menu.add_command(label="Создать проект", command=self.load_create_project)
         self.menu.add_command(label="Создать акты", command=self.load_create_acts)
         self.menu.add_command(label="Создать реестр", command=self.load_create_registry)
+        self.menu.add_command(label="Создать паспорт", command=self.load_create_passport)
 
         # Инициализация модулей
         self.create_project = CreateProject(self.root, self.menu_button, self.menu)
         self.create_acts = CreateActs(self.root, self.menu_button, self.menu)
         self.create_registry = CreateRegistry(self.root, self.menu_button, self.menu)
+        self.create_passport = CreatePassport(self.root, self.menu_button, self.menu)
 
     def show_menu(self):
         # Отображаем меню под кнопкой
@@ -46,6 +49,9 @@ class MainApp:
 
     def load_create_registry(self):
         self.create_registry.load_ui()
+
+    def load_create_passport(self):
+        self.create_passport.load_ui()
 
 if __name__ == "__main__":
     root = tk.Tk()
