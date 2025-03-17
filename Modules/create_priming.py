@@ -67,8 +67,8 @@ class CreatePriming:
             for i in range(1, 6):
                 changeres = round(random.uniform(2.048, 2.112), 3)
                 changek = round((changeres / 2.167), 2)
-                replacements[f"CHANGERES{i}"] = changeres
-                replacements[f"CHANGEK{i}"] = changek
+                replacements[f"CHANGERES{i}"] = str(changeres).replace('.', ',')
+                replacements[f"CHANGEK{i}"] = str(changek).replace('.', ',')
 
             for obj in main_data:
                 if obj['name'] == 'EXECUTIONISSUEDATEMONTH':
