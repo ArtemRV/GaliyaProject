@@ -1,5 +1,6 @@
 import os
 import re
+import openpyxl
 import tkinter as tk
 from docx import Document
 from docx.enum.text import WD_BREAK
@@ -92,6 +93,45 @@ class CreateRegistry:
         generate_button = tk.Button(self.root, text="Создать реестр", command=self.generate_document)
         generate_button.grid(row=12, column=0, columnspan=2, pady=10)
 
+    def save_table_to_excel(self, table_data, sheet_dir, subobject_name):
+        try:
+            # Создаем новый Excel файл
+            wb = openpyxl.Workbook()
+            ws = wb.active
+            ws.title = "Реестр"
+            
+            # Заголовки таблицы
+            headers = ["№ п/п", "Наименование", "Страницы"]
+            for col, header in enumerate(headers, 1):
+                ws.cell(row=1, column=col, value=header)
+            
+            # Заполняем данными
+            for row_idx, data in table_data.items():
+                ws.cell(row=row_idx + 1, column=1, value=data['idx'])
+                ws.cell(row=row_idx + 1, column=2, value=data['content'])
+                ws.cell(row=row_idx + 1, column=3, value=data['page'])
+            
+            # Форматирование
+            for column in ws.columns:
+                max_length = 0
+                column_letter = column[0].column_letter
+                for cell in column:
+                    try:
+                        if len(str(cell.value)) > max_length:
+                            max_length = len(str(cell.value))
+                    except:
+                        pass
+                adjusted_width = (max_length + 2)
+                ws.column_dimensions[column_letter].width = adjusted_width
+            
+            # Путь для сохранения - тот же что у PDF
+            excel_path = os.path.join(sheet_dir, f"Реестр {subobject_name}.xlsx")
+            wb.save(excel_path)
+            return excel_path
+        except Exception as e:
+            messagebox.showerror("Ошибка", f"Не удалось сохранить Excel файл: {str(e)}")
+            return None
+
     def save_to_excel(self):
         if self.wb is None:
             messagebox.showwarning("Предупреждение", "Сначала загрузите файл Excel!")
@@ -139,6 +179,16 @@ class CreateRegistry:
                 self.doc = doc
                 self.output_path = output_path
                 doc, document_entries = self.generate_document_table(doc, ws, last_row, sheet_dir)
+                
+                # Получаем данные таблицы и SUBOBJECTNAME для имени файла
+                table_data, _, _ = fill_table_data(ws, last_row, sheet_dir)
+                subobject_name = get_cell_value(ws, SUBOBJECT_DATA[0]['cell_row'], SUBOBJECT_DATA[0]['cell_column'])
+                
+                # Сохраняем таблицу в Excel
+                excel_path = self.save_table_to_excel(table_data, sheet_dir, subobject_name)
+                if excel_path:
+                    created_files.append(excel_path)
+                
                 final_pdf_path = self.generate_document_content(document_entries, sheet_dir)
                 created_files.append(final_pdf_path)
             except Exception as e:
