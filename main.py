@@ -5,6 +5,8 @@ from Modules.create_acts import CreateActs
 from Modules.create_registry import CreateRegistry
 from Modules.create_passport import CreatePassport
 from Modules.create_priming import CreatePriming
+from Modules.create_dksk import CreateDKSK
+from Modules.create_inspection import CreateInspection
 
 class MainApp:
     def __init__(self, root):
@@ -25,6 +27,8 @@ class MainApp:
         self.menu.add_command(label="Создать реестр", command=self.load_create_registry)
         self.menu.add_command(label="Создать паспорт", command=self.load_create_passport)
         self.menu.add_command(label="Создать грунт", command=self.load_create_priming)
+        self.menu.add_command(label="Создать дкск", command=self.load_create_dksk)
+        self.menu.add_command(label="Создать визуальный контроль", command=self.load_create_inspection)
 
         # Инициализация модулей
         self.create_project = CreateProject(self.root, self.menu_button, self.menu)
@@ -32,6 +36,8 @@ class MainApp:
         self.create_registry = CreateRegistry(self.root, self.menu_button, self.menu)
         self.create_passport = CreatePassport(self.root, self.menu_button, self.menu)
         self.create_priming = CreatePriming(self.root, self.menu_button, self.menu)
+        self.create_dksk = CreateDKSK(self.root, self.menu_button, self.menu)
+        self.create_inspection = CreateInspection(self.root, self.menu_button, self.menu)
 
     def show_menu(self):
         # Отображаем меню под кнопкой
@@ -58,6 +64,12 @@ class MainApp:
 
     def load_create_priming(self):
         self.create_priming.load_ui()
+
+    def load_create_dksk(self):
+        self.create_dksk.load_ui()
+
+    def load_create_inspection(self):
+        self.create_inspection.load_ui()
 
 if __name__ == "__main__":
     root = tk.Tk()
